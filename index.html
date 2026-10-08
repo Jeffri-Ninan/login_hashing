@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Auth - Sign In & Sign Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --input-bg: rgba(15, 23, 42, 0.65);
+      --input-border: rgba(255, 255, 255, 0.12);
+      --input-focus: #818cf8;
+      --success: #10b981;
+      --error: #ef4444;
+      --radius: 14px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.6) 0%, transparent 100%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+    }
+
+    /* Ambient glow effect */
+    .glow-sphere {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: blur(40px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Auth Card */
+    .auth-card {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: 
+        0 20px 40px -15px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+      z-index: 1;
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 14px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 16px -4px var(--accent-glow);
+    }
+
+    .brand-logo svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .brand-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .brand-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Switch Tabs */
+    .tab-switch {
+      display: flex;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 9px;
+      transition: var(--transition);
+      z-index: 2;
+    }
+
+    .tab-btn.active {
+      color: #ffffff;
+      background: var(--accent);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
+    /* Forms */
+    .form-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-form {
+      display: none;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    .auth-form.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .input-group {
+      margin-bottom: 18px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-field-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+      stroke: currentColor;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+
+    .input-field-wrapper input {
+      width: 100%;
+      height: 46px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      padding: 0 44px 0 42px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .input-field-wrapper input:focus {
+      border-color: var(--input-focus);
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .input-field-wrapper input:focus ~ .input-icon {
+      color: var(--input-focus);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .toggle-password:hover {
+      color: var(--text-main);
+    }
+
+    .toggle-password svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .crypto-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #94a3b8;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    .crypto-badge svg {
+      width: 12px;
+      height: 12px;
+      stroke: #818cf8;
+    }
+
+    /* Submit Button */
+    .submit-btn {
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+      box-shadow: 0 8px 20px -4px var(--accent-glow);
+      margin-top: 24px;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px -2px rgba(99, 102, 241, 0.45);
+    }
+
+    .submit-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Helper info switch link */
+    .form-footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .form-footer a {
+      color: var(--input-focus);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .form-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* JSON Data Viewer Drawer */
+    .json-panel-toggle {
+      margin-top: 20px;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition);
+    }
+
+    .json-panel-toggle:hover {
+      color: var(--text-main);
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .json-panel {
+      display: none;
+      margin-top: 10px;
+      background: #080c14;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 11px;
+      position: relative;
+    }
+
+    .json-panel.show {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .json-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .json-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .json-action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .json-action-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    pre.json-view {
+      color: #38bdf8;
+      background: #04070d;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+      max-height: 180px;
+      font-family: 'Consolas', 'Fira Code', monospace;
+      line-height: 1.4;
+    }
+
+    /* Modal Popup Dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-box {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 90%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      transform: scale(0.9) translateY(20px);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-icon-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-icon-wrap.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--success);
+    }
+
+    .modal-icon-wrap.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--error);
+    }
+
+    .modal-icon-wrap svg {
+      width: 32px;
+      height: 32px;
+      stroke: currentColor;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .modal-message {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .modal-btn {
+      width: 100%;
+      height: 44px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .modal-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Inline Validation Helper */
+    .field-error {
+      color: var(--error);
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .field-error.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="glow-sphere"></div>
+
+    <div class="auth-card">
+      <!-- Header -->
+      <div class="brand-header">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <h1 id="panel-title">Welcome Back</h1>
+        <p id="panel-subtitle">Please enter your credentials to access your account</p>
+      </div>
+
+      <!-- Module Switcher -->
+      <div class="tab-switch">
+        <button type="button" class="tab-btn active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+        <button type="button" class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <div class="form-wrapper">
+        <!-- Sign In Form -->
+        <form id="signin-form" class="auth-form active" onsubmit="handleSignIn(event)">
+          <div class="input-group">
+            <label for="signin-email">Email Address</label>
+            <div class="input-field-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <input type="email" id="signin-email" placeholder="name@example.com" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="signin-password">Password</label>
+            <div class="input-field-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input type="password" id="signin-password" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signin-password', this)" title="Show/Hide Password">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+            <div class="crypto-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Protected with SHA-256 password hash comparison
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="signin-btn">
+            <span>Sign In</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+
+          <div class="form-footer">
+            Don't have an account? <a onclick="switchTab('signup')">Sign up here</a>
+          </div>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form id="signup-form" class="auth-form" onsubmit="handleSignUp(event)">
+          <div class="input-group">
+            <label for="signup-email">Email Address</label>
+            <div class="input-field-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <input type="email" id="signup-email" placeholder="name@example.com" required autocomplete="email">
+            </div>
+            <span class="field-error" id="signup-email-error"></span>
+          </div>
+
+          <div class="input-group">
+            <label for="signup-password">Password</label>
+            <div class="input-field-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input type="password" id="signup-password" placeholder="Create a strong password" required autocomplete="new-password">
+              <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signup-password', this)" title="Show/Hide Password">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+            <div class="crypto-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Password will be encrypted using SHA-256 before storage
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="signup-btn">
+            <span>Create Account</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+          </button>
+
+          <div class="form-footer">
+            Already have an account? <a onclick="switchTab('signin')">Sign in here</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- JSON Storage Inspector -->
+      <button class="json-panel-toggle" type="button" onclick="toggleJsonPanel()">
+        <span>Active User JSON Database (<span id="user-count">0</span>)</span>
+        <span id="json-toggle-icon">▼</span>
+      </button>
+
+      <div class="json-panel" id="json-panel">
+        <div class="json-panel-header">
+          <span>Database (localStorage JSON):</span>
+          <div class="json-actions">
+            <button class="json-action-btn" type="button" onclick="copyJsonData()">Copy JSON</button>
+            <button class="json-action-btn" type="button" onclick="resetDatabase()">Clear All</button>
+          </div>
+        </div>
+        <pre class="json-view" id="json-output">// No users stored yet</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Reusable Popup Modal -->
+  <div class="modal-overlay" id="popup-modal">
+    <div class="modal-box">
+      <div class="modal-icon-wrap" id="modal-icon-container">
+        <!-- Success Icon -->
+        <svg id="modal-success-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <!-- Error Icon -->
+        <svg id="modal-error-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+
+      <h2 class="modal-title" id="modal-title">Success</h2>
+      <p class="modal-message" id="modal-message">Account created successfully</p>
+
+      <button type="button" class="modal-btn" onclick="closeModal()">Continue</button>
+    </div>
+  </div>
+
+  <!-- Embedded Logic: Hashing, JSON Storage & Auth -->
+  <script>
+    // Database Key in LocalStorage
+    const DB_STORAGE_KEY = 'minimal_auth_users_db';
+
+    /**
+     * SHA-256 Hashing Algorithm using browser native Web Crypto API
+     * Converts plain text password into a 256-bit hexadecimal hash string
+     */
+    async function hashPassword(plainPassword) {
+      const msgUint8 = new TextEncoder().encode(plainPassword);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    }
+
+    /**
+     * Retrieve all users as a parsed JSON array from storage
+     */
+    function getUsersFromStorage() {
+      try {
+        const stored = localStorage.getItem(DB_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+      } catch (err) {
+        console.error('Error reading JSON users database:', err);
+        return [];
+      }
+    }
+
+    /**
+     * Save users array into localStorage as JSON formatted string
+     */
+    function saveUsersToStorage(usersArray) {
+      localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(usersArray, null, 2));
+      updateJsonViewer();
+    }
+
+    /**
+     * Update the live JSON database viewer UI
+     */
+    function updateJsonViewer() {
+      const users = getUsersFromStorage();
+      document.getElementById('user-count').textContent = users.length;
+      const jsonOutput = document.getElementById('json-output');
+      if (users.length === 0) {
+        jsonOutput.textContent = '[\n  // No registered users found.\n  // Use Sign Up above to create an account.\n]';
+      } else {
+        jsonOutput.textContent = JSON.stringify(users, null, 2);
+      }
+    }
+
+    /**
+     * Switch between Sign In and Sign Up tabs
+     */
+    function switchTab(tab) {
+      const isSignIn = tab === 'signin';
+      document.getElementById('tab-signin').classList.toggle('active', isSignIn);
+      document.getElementById('tab-signup').classList.toggle('active', !isSignIn);
+
+      document.getElementById('signin-form').classList.toggle('active', isSignIn);
+      document.getElementById('signup-form').classList.toggle('active', !isSignIn);
+
+      const title = document.getElementById('panel-title');
+      const subtitle = document.getElementById('panel-subtitle');
+
+      if (isSignIn) {
+        title.textContent = 'Welcome Back';
+        subtitle.textContent = 'Please enter your credentials to access your account';
+      } else {
+        title.textContent = 'Create Account';
+        subtitle.textContent = 'Sign up with your email and a secure password';
+      }
+
+      // Clear any validation notices
+      document.getElementById('signup-email-error').classList.remove('show');
+    }
+
+    /**
+     * Show Modal Popup with message
+     */
+    let onModalCloseCallback = null;
+
+    function showPopup(type, title, message, onClose = null) {
+      const modal = document.getElementById('popup-modal');
+      const iconContainer = document.getElementById('modal-icon-container');
+      const successIcon = document.getElementById('modal-success-icon');
+      const errorIcon = document.getElementById('modal-error-icon');
+      const modalTitle = document.getElementById('modal-title');
+      const modalMessage = document.getElementById('modal-message');
+
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+      onModalCloseCallback = onClose;
+
+      if (type === 'success') {
+        iconContainer.className = 'modal-icon-wrap success';
+        successIcon.style.display = 'block';
+        errorIcon.style.display = 'none';
+      } else {
+        iconContainer.className = 'modal-icon-wrap error';
+        successIcon.style.display = 'none';
+        errorIcon.style.display = 'block';
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('popup-modal');
+      modal.classList.remove('active');
+      if (onModalCloseCallback) {
+        onModalCloseCallback();
+        onModalCloseCallback = null;
+      }
+    }
+
+    // Close on overlay backdrop click
+    document.getElementById('popup-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'popup-modal') {
+        closeModal();
+      }
+    });
+
+    /**
+     * Toggle password field visibility
+     */
+    function togglePasswordVisibility(fieldId, btn) {
+      const field = document.getElementById(fieldId);
+      const isPassword = field.type === 'password';
+      field.type = isPassword ? 'text' : 'password';
+
+      btn.innerHTML = isPassword 
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    }
+
+    /**
+     * Handle Sign Up Form Submission
+     */
+    async function handleSignUp(event) {
+      event.preventDefault();
+      const emailInput = document.getElementById('signup-email');
+      const passwordInput = document.getElementById('signup-password');
+      const emailError = document.getElementById('signup-email-error');
+
+      const email = emailInput.value.trim().toLowerCase();
+      const plainPassword = passwordInput.value;
+
+      if (!email || !plainPassword) {
+        showPopup('error', 'Validation Error', 'Please fill in both email and password.');
+        return;
+      }
+
+      // Check if user already exists in JSON database
+      const users = getUsersFromStorage();
+      const existingUser = users.find(u => u.email === email);
+
+      if (existingUser) {
+        emailError.textContent = 'An account with this email already exists.';
+        emailError.classList.add('show');
+        showPopup('error', 'Registration Failed', 'An account with this email address already exists. Please sign in instead.');
+        return;
+      }
+
+      emailError.classList.remove('show');
+
+      // Hash password using SHA-256
+      const hashedPassword = await hashPassword(plainPassword);
+
+      // Construct user record object
+      const newUser = {
+        id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+        email: email,
+        passwordHash: hashedPassword,
+        createdAt: new Date().toISOString()
+      };
+
+      // Store in JSON list
+      users.push(newUser);
+      saveUsersToStorage(users);
+
+      // Clear form
+      document.getElementById('signup-form').reset();
+
+      // Pop account created successfully message
+      showPopup('success', 'Account Created Successfully!', `Your account for "${email}" was created. Your password was safely hashed with SHA-256 and stored in the JSON database.`, () => {
+        // Pre-fill sign-in email and switch to Sign In tab
+        document.getElementById('signin-email').value = email;
+        switchTab('signin');
+      });
+    }
+
+    /**
+     * Handle Sign In Form Submission
+     */
+    async function handleSignIn(event) {
+      event.preventDefault();
+      const emailInput = document.getElementById('signin-email');
+      const passwordInput = document.getElementById('signin-password');
+
+      const email = emailInput.value.trim().toLowerCase();
+      const plainPassword = passwordInput.value;
+
+      if (!email || !plainPassword) {
+        showPopup('error', 'Validation Error', 'Please enter your email and password.');
+        return;
+      }
+
+      // Hash the entered password to compare against stored hash
+      const enteredPasswordHash = await hashPassword(plainPassword);
+
+      // Find user from JSON database
+      const users = getUsersFromStorage();
+      const user = users.find(u => u.email === email);
+
+      if (!user) {
+        showPopup('error', 'Sign In Failed', 'No account found with this email. Please sign up first.');
+        return;
+      }
+
+      // Verify the cryptographic hash
+      if (user.passwordHash === enteredPasswordHash) {
+        // Pop sign in successful message
+        showPopup('success', 'Sign In Successful!', `Welcome back, ${user.email}! You have authenticated successfully.`);
+      } else {
+        showPopup('error', 'Sign In Failed', 'Incorrect password. The password hash does not match our records.');
+      }
+    }
+
+    /**
+     * Toggle JSON storage viewer panel
+     */
+    function toggleJsonPanel() {
+      const panel = document.getElementById('json-panel');
+      const icon = document.getElementById('json-toggle-icon');
+      const isVisible = panel.classList.toggle('show');
+      icon.textContent = isVisible ? '▲' : '▼';
+    }
+
+    /**
+     * Copy JSON data to clipboard
+     */
+    function copyJsonData() {
+      const users = getUsersFromStorage();
+      navigator.clipboard.writeText(JSON.stringify(users, null, 2)).then(() => {
+        alert('User JSON database copied to clipboard!');
+      }).catch(() => {
+        alert('Could not copy to clipboard.');
+      });
+    }
+
+    /**
+     * Reset / Clear local JSON database
+     */
+    function resetDatabase() {
+      if (confirm('Are you sure you want to clear all stored user accounts from the JSON database?')) {
+        localStorage.removeItem(DB_STORAGE_KEY);
+        updateJsonViewer();
+        showPopup('success', 'Database Cleared', 'All stored users have been removed.');
+      }
+    }
+
+    // Initialize state on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateJsonViewer();
+    });
+  </script>
+</body>
+</html>
